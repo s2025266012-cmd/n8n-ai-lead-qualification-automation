@@ -1,0 +1,649 @@
+{
+  "name": "Nexa AI - Lead Qualification Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4",
+          "mode": "list",
+          "cachedResultName": "Nexa Digital Agency – Project Inquiry Form  (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 877272629,
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit#gid=877272629"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4135d933-33d3-446d-937c-825fce337a11",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "3uulBJAI200WKM2K",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=\nYou are an AI Lead Qualification Assistant for Nexa Digital Agency.\n\nAnalyze the following lead information:\n\nFull Name: {{ $json['Full Name'] }}\nEmail: {{ $json['Email Address'] }}\nCompany: {{ $json['Company Name'] }}\nService Required: {{ $json['Service Required'] }}\nEstimated Budget: {{ $json['Estimate Budget'] }}\nTimeline: {{ $json['Project Timeline'] }}\nProject Description: {{ $json['Project Description'] }}\n\nYOUR TASK:\n\n1. Assign a lead score from 0 to 100.\n2. Classify the lead into one category:\n   - qualified\n   - low_priority\n   - spam\n3. Explain the reason for your decision.\n4. Recommend the next action.\n\nSCORING RULES:\n\n- 70–100: qualified\n- 40–69: low_priority\n- 0–39: low_priority, unless clearly spam.\n- Spam means irrelevant, promotional or obviously automated submissions.\n- Do not classify a lead as spam only because information is missing.\n- Never invent missing information.\n\nOUTPUT REQUIREMENTS:\n\nReturn ONLY valid JSON.\nDo not use Markdown or code fences.\n\nUse exactly this structure:\n\n{\n  \"lead_score\": 0,\n  \"category\": \"qualified\",\n  \"reason\": \"Explanation of classification\",\n  \"recommended_action\": \"Suggested next step\"\n}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ae3c20d9-e1fd-4360-b206-6c18fb81b59c",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "diOUMWpp1NSrrcUR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0f13948e-9391-468c-b285-a2365c6a8364",
+              "leftValue": "={{ $json.category }}",
+              "rightValue": "qualified",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        0
+      ],
+      "id": "0497524c-9139-4628-ac10-2bdf3c3ba11c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1c5f47a3-6a57-4463-b7b6-fa59ef55bce3",
+              "leftValue": "={{ $json.category }}",
+              "rightValue": "low_priority",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        96
+      ],
+      "id": "8c84202a-1b8e-45ac-aec4-04d20b292bd7",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+        "subject": "Quick follow-up regarding your project",
+        "emailType": "text",
+        "message": "=Hi {{ $('Google Sheets Trigger').item.json['Full Name'] }},  {{ $json.recommended_action }}  Best regards, Nexa Digital",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "8227ba0f-dd40-4f61-bfbf-9ecbeb7e8d86",
+      "name": "Send a message",
+      "webhookId": "56c90ac6-2fd9-40da-bcb7-e559fc4067c7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V9KvwghkZ3rI5Ktw",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4",
+          "mode": "list",
+          "cachedResultName": "Nexa Digital Agency – Project Inquiry Form  (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 877272629,
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit#gid=877272629"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Address": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+            "status": "Qualified - Email Sent",
+            "Lead Score": "={{ $('Edit Fields').item.json.Lead_Score }}",
+            "AI Reason": "={{ $('Edit Fields').item.json.Reason }}"
+          },
+          "matchingColumns": [
+            "Email Address"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Service Required",
+              "displayName": "Service Required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estimate Budget",
+              "displayName": "Estimate Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Project Timeline",
+              "displayName": "Project Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Project Description",
+              "displayName": "Project Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Reason",
+              "displayName": "AI Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "e85b656e-138f-456e-be90-5a429164fe85",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VGrcSFuT9abrq71E",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4",
+          "mode": "list",
+          "cachedResultName": "Nexa Digital Agency – Project Inquiry Form  (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 877272629,
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Y5Et5GxBHC58EEhM-4CoAUeNTte_w-D9IyozrEsM7E4/edit#gid=877272629"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Address": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+            "status": "Not Qualified",
+            "Lead Score": "={{ $('Edit Fields').item.json.Lead_Score }}",
+            "AI Reason": "={{ $('Edit Fields').item.json.Reason }}"
+          },
+          "matchingColumns": [
+            "Email Address"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Service Required",
+              "displayName": "Service Required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estimate Budget",
+              "displayName": "Estimate Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Project Timeline",
+              "displayName": "Project Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Project Description",
+              "displayName": "Project Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Reason",
+              "displayName": "AI Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "db916864-3531-4876-b883-0927fbf56229",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VGrcSFuT9abrq71E",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "301e23e6-c422-472e-8d42-375acdaf9adc",
+              "name": "Lead_Score",
+              "value": "={{ JSON.parse($json.content.parts[0].text).lead_score }}",
+              "type": "number"
+            },
+            {
+              "id": "a8daa12a-bc2b-4ac3-a856-3b2879a3cf88",
+              "name": "Category",
+              "value": "={{ JSON.parse($json.content.parts[0].text).category }}",
+              "type": "string"
+            },
+            {
+              "id": "6611d85c-2571-46f1-af55-75e23994ed41",
+              "name": "Reason",
+              "value": "={{ JSON.parse($json.content.parts[0].text).reason }}",
+              "type": "string"
+            },
+            {
+              "id": "31be5d89-9b42-4031-9a10-c87457c4e5c9",
+              "name": "recommended_action",
+              "value": "={{ JSON.parse($json.content.parts[0].text).recommended_action }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        592,
+        0
+      ],
+      "id": "b42b9ab3-9a69-4cf3-b67e-74a39c9e32b6",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c23441dd-d5e8-489e-945e-d5dd984d383c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e6dd65a181c2258992dbb205ce1c6334c3db69551f39fbd88d512b3fa80c31b"
+  },
+  "nodeGroups": [],
+  "id": "NkXnSv2rWxAtvWhh",
+  "tags": []
+}
